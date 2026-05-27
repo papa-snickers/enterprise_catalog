@@ -13,10 +13,13 @@
 | Навигация | Navigation Compose |
 | Хранение | DataStore Preferences |
 | Асинхронность | Kotlin Coroutines |
-| Сервер | Ktor + Exposed ORM + SQLite |
+| Сервер | Ktor + Exposed ORM |
+| БД | SQLite (локально) / PostgreSQL (Docker / VPS) |
 | Аутентификация | JWT (HMAC256) + BCrypt |
 
 ## Запуск сервера
+
+### Вариант 1 — SQLite (без установки, для быстрого старта)
 
 ```bash
 ./gradlew :ktor-server:run
@@ -25,6 +28,33 @@
 Сервер стартует на `http://localhost:8080` и автоматически:
 - Создаёт таблицы в SQLite (`enterprise_catalog.db`)
 - Загружает тестовые данные (если БД пустая)
+
+### Вариант 2 — PostgreSQL локально
+
+Создай базу данных:
+```bash
+psql -U postgres -c "CREATE DATABASE enterprise_catalog;"
+```
+
+Запусти сервер с переменными окружения:
+```bash
+DB_URL="jdbc:postgresql://localhost:5432/enterprise_catalog" \
+DB_USER="postgres" \
+DB_PASSWORD="твой_пароль" \
+./gradlew :ktor-server:run
+```
+
+### Вариант 3 — PostgreSQL в Docker
+
+```bash
+# Собрать JAR
+./gradlew :ktor-server:shadowJar
+
+# Запустить PostgreSQL + сервер
+docker compose up --build
+```
+
+Сервер и БД поднимутся автоматически. Остановить: `docker compose down`
 
 ## Тестовые аккаунты
 
@@ -43,7 +73,11 @@
 
 ```
 course_work/
-├── ktor-server/          # Серверная часть (Ktor + Exposed + SQLite)
+├── docker-compose.yml        # PostgreSQL + сервер в Docker
+├── ktor-server/              # Серверная часть (Ktor + Exposed)
+│   ├── Dockerfile
+│   ├── deploy.sh             # Скрипт деплоя на VPS
+│   ├── enterprise-catalog.service  # systemd unit
 │   └── src/main/kotlin/com/example/server/
 │       ├── Application.kt          # Точка входа
 │       ├── DatabaseFactory.kt      # Инициализация БД + сиды
@@ -52,7 +86,7 @@ course_work/
 │       │   └── Dtos.kt             # Сериализуемые модели
 │       ├── plugins/                # Ktor-плагины
 │       └── routes/                 # REST-маршруты
-└── app/                  # Android-приложение
+└── app/                      # Android-приложение
     └── src/main/java/com/example/enterprisecatalog/
         ├── MainActivity.kt
         ├── data/
