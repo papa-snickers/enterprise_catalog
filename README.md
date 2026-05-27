@@ -2,6 +2,8 @@
 
 Курсовая работа по дисциплине «Разработка клиент-серверных мобильных приложений»
 
+---
+
 ## 🛠 Стек технологий
 
 ### Android-клиент
@@ -12,7 +14,8 @@
 | UI | Jetpack Compose + Material 3 |
 | Архитектура | MVVM (ViewModel + StateFlow) |
 | Навигация | Navigation Compose |
-| HTTP | Retrofit 2 + OkHttp + kotlinx-serialization |
+| HTTP | Retrofit 2 + OkHttp |
+| Сериализация | kotlinx-serialization |
 | Хранение | DataStore Preferences |
 | Асинхронность | Kotlin Coroutines |
 
@@ -22,109 +25,153 @@
 |-----------|-----------|
 | Фреймворк | Ktor 3.0.3 (Netty) |
 | ORM | Exposed 0.55.0 |
-| База данных | SQLite (локально) / PostgreSQL (Docker, VPS) |
+| База данных | SQLite (локально) / PostgreSQL (Docker) |
 | Аутентификация | JWT HMAC256 + BCrypt |
 | Контейнеризация | Docker + Docker Compose |
 
-## 📁 Структура репозитория
+---
+
+## 📁 Структура проекта
 
 ```
 enterprise_catalog/
-├── docker-compose.yml            # PostgreSQL + сервер в Docker
-├── app/                          # Android-приложение
+├── docker-compose.yml
+├── app/
 │   └── src/main/java/com/example/enterprisecatalog/
 │       ├── data/
-│       │   ├── api/              # Retrofit-интерфейс + ApiClient
-│       │   ├── local/            # DataStore (токен, тема, история поиска)
-│       │   ├── model/            # DTO-модели, ApiResult
+│       │   ├── api/              # Retrofit-интерфейс + ApiClient + AuthInterceptor
+│       │   ├── local/            # DataStore (токен, роль, тема, история поиска)
+│       │   ├── model/            # DTO-модели, sealed class ApiResult
 │       │   └── repository/       # AuthRepository, EnterpriseRepository
-│       ├── navigation/           # Граф навигации, маршруты
+│       ├── navigation/           # NavGraph, Screen (маршруты)
 │       └── ui/
-│           ├── auth/             # Вход, регистрация
-│           ├── catalog/          # Каталог, поиск, фильтры
-│           ├── admin/            # Административная панель
+│           ├── auth/             # Вход, регистрация + ViewModel
+│           ├── catalog/          # Каталог, поиск, фильтры, BottomSheet
+│           ├── admin/            # Административная панель + статистика
 │           ├── edit/             # Создание / редактирование предприятия
 │           ├── profile/          # Профиль пользователя
-│           └── theme/            # Material 3 тема (светлая / тёмная)
-└── ktor-server/                  # Серверная часть
+│           ├── splash/           # Заставка с определением роли
+│           └── theme/            # Цвета, типографика, Material 3 тема
+└── ktor-server/
     ├── Dockerfile
-    ├── deploy.sh                 # Скрипт деплоя на VPS
-    ├── enterprise-catalog.service # systemd unit
+    ├── deploy.sh
+    ├── enterprise-catalog.service
     └── src/main/kotlin/com/example/server/
-        ├── Application.kt        # Точка входа
-        ├── DatabaseFactory.kt    # Подключение БД + сиды
+        ├── Application.kt
+        ├── DatabaseFactory.kt
         ├── models/               # Exposed-таблицы, DTO
         ├── plugins/              # JWT, CORS, сериализация, статус-страницы
-        └── routes/               # Маршруты: auth, enterprises
+        └── routes/               # AuthRoutes, EnterpriseRoutes
 ```
+
+---
 
 ## ✨ Функциональность
 
-- 🔐 **Авторизация** — регистрация и вход с JWT-токеном, две роли: USER и ADMIN
-- 🏢 **Каталог предприятий** — список с карточками, детальный просмотр через BottomSheet
-- 🔍 **Поиск** — с задержкой debounce 500 мс, история последних 10 запросов
-- 🏷 **Фильтрация** — по категории специализации через ChipGroup
-- ✏️ **Управление данными** — создание, редактирование, удаление (только ADMIN)
+- 🔐 **Авторизация** — регистрация и вход, две роли: USER и ADMIN, токен хранится в DataStore
+- 🏢 **Каталог** — список предприятий с карточками, детальный просмотр через BottomSheet
+- 🔍 **Поиск** — debounce 500 мс по названию, описанию и адресу, история последних 10 запросов
+- 🏷 **Фильтрация** — по категории специализации через горизонтальные чипы
+- ✏️ **Управление** — создание, редактирование, удаление предприятий (только ADMIN)
 - 📊 **Статистика** — количество предприятий по категориям (только ADMIN)
-- 🌙 **Тёмная тема** — переключение из профиля, сохраняется в DataStore
+- 🌙 **Тёмная тема** — переключение из профиля, сохраняется между сессиями
+
+---
 
 ## 🏗 Архитектура
 
 ```
 Android (MVVM)  ──HTTP/REST──▶  Ktor Server  ──Exposed ORM──▶  SQLite / PostgreSQL
-                   + JWT
+                  JWT Bearer
 ```
 
-**Клиент:** MVVM + Retrofit + Coroutines + DataStore + Navigation Compose
+**Клиент:** каждый запрос автоматически получает заголовок `Authorization: Bearer <token>` через OkHttp `Interceptor`. Состояние экранов управляется через `StateFlow` во `ViewModel`. Сохранение состояния при пересоздании — через `SavedStateHandle`.
 
-**Сервер:** Ktor + Exposed + BCrypt + Docker Compose
+**Сервер:** публичные эндпоинты доступны без токена. Защищённые обёрнуты в `authenticate(JWT_AUTH)`, внутри дополнительно проверяется роль из payload токена. Пароли хранятся исключительно в виде BCrypt-хешей.
 
-**Безопасность:** JWT HMAC256, срок действия токена 24 часа. Пароли хранятся в виде BCrypt-хешей. Защищённые эндпоинты проверяют роль из payload токена.
+---
 
 ## 🗄 База данных
 
-| Таблица | Назначение |
-|---------|-----------|
-| `users` | Пользователи (логин, хеш пароля, роль, имя, email) |
-| `enterprises` | Предприятия (название, специализация, описание, контакты) |
+### Таблица `users`
+
+| Поле | Тип | Описание |
+|------|-----|----------|
+| id | VARCHAR(36) | UUID пользователя |
+| name | VARCHAR(255) | Полное имя |
+| login | VARCHAR(100) | Логин (уникальный) |
+| email | VARCHAR(255) | Email (уникальный) |
+| password_hash | VARCHAR(255) | BCrypt-хеш пароля |
+| role | VARCHAR(20) | Роль: USER или ADMIN |
+
+### Таблица `enterprises`
+
+| Поле | Тип | Описание |
+|------|-----|----------|
+| id | VARCHAR(36) | UUID предприятия |
+| name | VARCHAR(255) | Наименование |
+| specialization | VARCHAR(100) | Категория |
+| description | TEXT | Описание деятельности |
+| address | VARCHAR(500) | Адрес |
+| phone | VARCHAR(50) | Телефон |
+| email | VARCHAR(255) | Email |
+| website | VARCHAR(255) | Сайт |
+| created_at | VARCHAR(50) | Дата создания |
+
+---
 
 ## 🚀 Запуск сервера
 
-### Вариант 1 — SQLite (быстрый старт, без установки)
-
-```bash
-./gradlew :ktor-server:run
-```
-
-### Вариант 2 — PostgreSQL локально
-
-```bash
-psql -U postgres -c "CREATE DATABASE enterprise_catalog;"
-
-DB_URL="jdbc:postgresql://localhost:5432/enterprise_catalog" \
-DB_USER="postgres" \
-DB_PASSWORD="твой_пароль" \
-./gradlew :ktor-server:run
-```
-
-### Вариант 3 — Docker Compose (PostgreSQL + сервер)
+### 1. Сборка JAR
 
 ```bash
 ./gradlew :ktor-server:shadowJar
+```
+
+### 2. Сборка Docker-образа
+
+```bash
+docker build -t enterprise-catalog:latest ./ktor-server
+```
+
+### 3. Запуск стека (PostgreSQL + сервер)
+
+```bash
 docker compose up --build
 ```
 
 Сервер будет доступен на `http://localhost:8080`
 
-При первом запуске автоматически создаются таблицы и тестовые данные.
+При первом запуске автоматически создаются таблицы и загружаются тестовые данные (2 пользователя, 6 предприятий).
 
 ### Переменные окружения
 
-| Переменная | Описание | По умолчанию |
-|-----------|----------|-------------|
-| `DB_URL` | JDBC-строка подключения | SQLite (если не задана) |
-| `DB_USER` | Пользователь БД | `catalog_user` |
-| `DB_PASSWORD` | Пароль БД | `catalog_pass` |
+| Переменная | Описание |
+|-----------|----------|
+| `DB_URL` | JDBC-строка подключения (если не задана — используется SQLite) |
+| `DB_USER` | Пользователь БД |
+| `DB_PASSWORD` | Пароль БД |
+
+---
+
+## 🌐 Доступ с реальных устройств (ngrok)
+
+Для подключения реального Android-устройства к локальному серверу используется [ngrok](https://ngrok.com) — инструмент создания публичного HTTPS-туннеля к локальному порту.
+
+```bash
+ngrok http 8080
+```
+
+После запуска ngrok предоставляет публичный URL вида:
+```
+https://xxx.ngrok-free.app → http://localhost:8080
+```
+
+Этот URL прописывается в `BuildConfig.BASE_URL` приложения. Все запросы с телефона проходят через туннель к локальному серверу.
+
+Веб-интерфейс для мониторинга запросов: `http://127.0.0.1:4040`
+
+---
 
 ## 🔑 Тестовые аккаунты
 
@@ -132,6 +179,8 @@ docker compose up --build
 |-------|--------|------|
 | `admin` | `admin123` | ADMIN |
 | `user` | `user123` | USER |
+
+---
 
 ## 📡 API
 
@@ -146,16 +195,16 @@ docker compose up --build
 | DELETE | `/enterprises/{id}` | ADMIN | Удалить предприятие |
 | GET | `/categories` | — | Список специализаций |
 
-Все эндпоинты кроме `/auth/register` и `/auth/login` поддерживают заголовок `Authorization: Bearer <token>`
+---
 
 ## 📱 Экраны приложения
 
 | Экран | Описание |
 |-------|----------|
-| Заставка | Определяет роль и перенаправляет на нужный экран |
+| Заставка | Проверяет токен, перенаправляет по роли |
 | Вход | Авторизация по логину и паролю |
-| Регистрация | Создание аккаунта с выбором роли |
-| Каталог | Список предприятий, поиск, фильтрация по категории |
-| Административная панель | Каталог с CRUD + статистика по категориям |
-| Редактирование | Создание и редактирование предприятия |
-| Профиль | Данные пользователя, смена темы, выход |
+| Регистрация | Создание аккаунта с выбором роли USER / ADMIN |
+| Каталог | Список предприятий, поиск с историей, фильтры по категориям |
+| Административная панель | Каталог с CRUD-операциями + статистика по категориям |
+| Редактирование | Форма создания и редактирования предприятия |
+| Профиль | Имя, логин, email, роль, переключатель темы, выход |
