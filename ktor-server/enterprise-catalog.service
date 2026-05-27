@@ -1,0 +1,18 @@
+[Unit]
+Description=Enterprise Catalog Ktor Server
+After=network.target
+
+[Service]
+User=ubuntu
+WorkingDirectory=/opt/enterprise-catalog
+Environment="DB_URL=jdbc:postgresql://ep-fancy-union-ap6jj2hx-pooler.c-7.us-east-1.aws.neon.tech/neondb?sslmode=require"
+Environment="DB_USER=neondb_owner"
+Environment="DB_PASSWORD=npg_ERkUnmHau72f"
+ExecStart=/usr/bin/java -jar /opt/enterprise-catalog/enterprise-catalog-server.jar
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
