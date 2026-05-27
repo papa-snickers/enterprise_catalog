@@ -13,3 +13,7 @@
 .externalNativeBuild
 .cxx
 local.properties
+.kotlin/
+*.pdf
+ktor-server/build/
+ktor-server/*.db
