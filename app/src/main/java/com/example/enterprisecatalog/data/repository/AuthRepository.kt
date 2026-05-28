@@ -29,12 +29,12 @@ fun parseError(body: String?): String {
 
 // ── Auth Repository ───────────────────────────────────────────────────────────
 
-class AuthRepository(
+open class AuthRepository(
     private val api: ApiService,
     private val dataStore: DataStoreManager
 ) {
 
-    suspend fun login(login: String, password: String): ApiResult<AuthResponse> {
+    open suspend fun login(login: String, password: String): ApiResult<AuthResponse> {
         return safeApiCall {
             val response = api.login(LoginRequest(login, password))
             if (response.isSuccessful) {
