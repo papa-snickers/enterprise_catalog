@@ -20,7 +20,8 @@ data class CatalogUiState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val selectedEnterprise: Enterprise? = null,
-    val selectedCategory: String? = null
+    val selectedCategory: String? = null,
+    val favoriteIds: Set<String> = emptySet()
 )
 
 class CatalogViewModel(
@@ -38,6 +39,7 @@ class CatalogViewModel(
     init {
         loadCategories()
         loadEnterprises()
+        loadFavoriteIds()
     }
 
     fun onSearchQueryChange(query: String) {
@@ -79,6 +81,30 @@ class CatalogViewModel(
             when (val result = repository.getCategories()) {
                 is ApiResult.Success -> _uiState.update { it.copy(categories = result.data) }
                 else -> {}
+            }
+        }
+    }
+
+    fun loadFavoriteIds() {
+        viewModelScope.launch {
+            when (val result = repository.getFavorites()) {
+                is ApiResult.Success -> _uiState.update {
+                    it.copy(favoriteIds = result.data.map { e -> e.id }.toSet())
+                }
+                else -> {}
+            }
+        }
+    }
+
+    fun toggleFavorite(enterprise: Enterprise) {
+        val isFav = _uiState.value.favoriteIds.contains(enterprise.id)
+        viewModelScope.launch {
+            if (isFav) {
+                repository.removeFavorite(enterprise.id)
+                _uiState.update { it.copy(favoriteIds = it.favoriteIds - enterprise.id) }
+            } else {
+                repository.addFavorite(enterprise.id)
+                _uiState.update { it.copy(favoriteIds = it.favoriteIds + enterprise.id) }
             }
         }
     }

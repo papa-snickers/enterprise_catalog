@@ -15,6 +15,7 @@ import com.example.enterprisecatalog.ui.auth.LoginScreen
 import com.example.enterprisecatalog.ui.auth.RegisterScreen
 import com.example.enterprisecatalog.ui.catalog.CatalogScreen
 import com.example.enterprisecatalog.ui.edit.EnterpriseEditScreen
+import com.example.enterprisecatalog.ui.favorites.FavoritesScreen
 import com.example.enterprisecatalog.ui.profile.ProfileScreen
 import com.example.enterprisecatalog.ui.splash.SplashScreen
 
@@ -87,7 +88,17 @@ fun NavGraph(
                 onToggleTheme = onToggleTheme,
                 onNavigateToProfile = {
                     navController.navigate(Screen.Profile.route)
+                },
+                onNavigateToFavorites = {
+                    navController.navigate(Screen.Favorites.route)
                 }
+            )
+        }
+
+        composable(Screen.Favorites.route) {
+            FavoritesScreen(
+                enterpriseRepository = enterpriseRepository,
+                onBack = { navController.popBackStack() }
             )
         }
 

@@ -46,6 +46,15 @@ interface ApiService {
 
     @GET("categories")
     suspend fun getCategories(): Response<List<String>>
+
+    @GET("favorites")
+    suspend fun getFavorites(): Response<List<Enterprise>>
+
+    @POST("enterprises/{id}/favorite")
+    suspend fun addFavorite(@Path("id") id: String): Response<SuccessResponse>
+
+    @DELETE("enterprises/{id}/favorite")
+    suspend fun removeFavorite(@Path("id") id: String): Response<SuccessResponse>
 }
 
 object ApiClient {

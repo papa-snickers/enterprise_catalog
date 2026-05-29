@@ -46,4 +46,22 @@ open class EnterpriseRepository(private val api: ApiService) {
         if (response.isSuccessful) ApiResult.Success(response.body()!!)
         else ApiResult.Error(parseError(response.errorBody()?.string()))
     }
+
+    open suspend fun getFavorites(): ApiResult<List<Enterprise>> = safeApiCall {
+        val response = api.getFavorites()
+        if (response.isSuccessful) ApiResult.Success(response.body()!!)
+        else ApiResult.Error(parseError(response.errorBody()?.string()))
+    }
+
+    open suspend fun addFavorite(id: String): ApiResult<SuccessResponse> = safeApiCall {
+        val response = api.addFavorite(id)
+        if (response.isSuccessful) ApiResult.Success(response.body()!!)
+        else ApiResult.Error(parseError(response.errorBody()?.string()))
+    }
+
+    open suspend fun removeFavorite(id: String): ApiResult<SuccessResponse> = safeApiCall {
+        val response = api.removeFavorite(id)
+        if (response.isSuccessful) ApiResult.Success(response.body()!!)
+        else ApiResult.Error(parseError(response.errorBody()?.string()))
+    }
 }

@@ -3,6 +3,7 @@ package com.example.server
 import com.example.server.plugins.*
 import com.example.server.routes.authRoutes
 import com.example.server.routes.enterpriseRoutes
+import com.example.server.routes.favoriteRoutes
 import io.ktor.server.application.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
@@ -25,5 +26,6 @@ fun Application.module() {
     routing {
         authRoutes()
         enterpriseRoutes()
+        favoriteRoutes()
     }
 }

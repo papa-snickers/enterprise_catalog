@@ -5,6 +5,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -20,6 +22,8 @@ fun EnterpriseCard(
     enterprise: Enterprise,
     onClick: () -> Unit,
     isAdmin: Boolean = false,
+    isFavorite: Boolean = false,
+    onToggleFavorite: (() -> Unit)? = null,
     onEdit: (() -> Unit)? = null,
     onDelete: (() -> Unit)? = null,
     modifier: Modifier = Modifier
@@ -45,8 +49,21 @@ fun EnterpriseCard(
                     modifier = Modifier.weight(1f),
                     maxLines = 2
                 )
-                if (isAdmin) {
-                    Row {
+                Row {
+                    if (onToggleFavorite != null) {
+                        IconButton(
+                            onClick = onToggleFavorite,
+                            modifier = Modifier.size(40.dp)
+                        ) {
+                            Icon(
+                                imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                                contentDescription = if (isFavorite) "Убрать из избранного" else "Добавить в избранное",
+                                modifier = Modifier.size(24.dp),
+                                tint = if (isFavorite) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                    if (isAdmin) {
                         IconButton(
                             onClick = { onEdit?.invoke() },
                             modifier = Modifier.size(32.dp)

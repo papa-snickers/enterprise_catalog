@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.DarkMode
+import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.LightMode
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -26,7 +27,8 @@ fun CatalogScreen(
     enterpriseRepository: EnterpriseRepository,
     dataStoreManager: DataStoreManager,
     onToggleTheme: () -> Unit,
-    onNavigateToProfile: () -> Unit
+    onNavigateToProfile: () -> Unit,
+    onNavigateToFavorites: () -> Unit = {}
 ) {
     val viewModel: CatalogViewModel = viewModel {
         CatalogViewModel(enterpriseRepository, createSavedStateHandle())
@@ -46,6 +48,9 @@ fun CatalogScreen(
             TopAppBar(
                 title = { Text("Каталог предприятий") },
                 actions = {
+                    IconButton(onClick = onNavigateToFavorites) {
+                        Icon(Icons.Outlined.FavoriteBorder, contentDescription = "Избранное")
+                    }
                     IconButton(onClick = onToggleTheme) {
                         Icon(
                             imageVector = if (darkTheme) Icons.Outlined.LightMode else Icons.Outlined.DarkMode,
@@ -61,7 +66,6 @@ fun CatalogScreen(
     ) { padding ->
         Box(modifier = Modifier.padding(padding)) {
             Column(modifier = Modifier.fillMaxSize()) {
-                // Search field
                 Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
                     SearchBarField(
                         value = searchQuery,
@@ -70,12 +74,10 @@ fun CatalogScreen(
                     )
                 }
 
-                // Progress
                 if (uiState.isLoading) {
                     LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                 }
 
-                // Category chips
                 if (uiState.categories.isNotEmpty()) {
                     CategoryChips(
                         categories = uiState.categories,
@@ -85,7 +87,6 @@ fun CatalogScreen(
                     )
                 }
 
-                // Content area
                 Box(modifier = Modifier.weight(1f)) {
                     when {
                         uiState.error != null -> ErrorPlaceholder(
@@ -107,13 +108,14 @@ fun CatalogScreen(
                                         scope.launch { dataStoreManager.addSearchQuery(enterprise.name) }
                                         viewModel.selectEnterprise(enterprise)
                                         showBottomSheet = true
-                                    }
+                                    },
+                                    isFavorite = uiState.favoriteIds.contains(enterprise.id),
+                                    onToggleFavorite = { viewModel.toggleFavorite(enterprise) }
                                 )
                             }
                         }
                     }
 
-                    // Search history overlay
                     if (searchFocused && searchHistory.isNotEmpty()) {
                         SearchHistoryCard(
                             history = searchHistory,
@@ -132,15 +134,17 @@ fun CatalogScreen(
         }
     }
 
-    // Bottom sheet
     if (showBottomSheet && uiState.selectedEnterprise != null) {
+        val enterprise = uiState.selectedEnterprise!!
         EnterpriseBottomSheet(
-            enterprise = uiState.selectedEnterprise!!,
+            enterprise = enterprise,
             isAdmin = false,
             onDismiss = {
                 showBottomSheet = false
                 viewModel.selectEnterprise(null)
-            }
+            },
+            isFavorite = uiState.favoriteIds.contains(enterprise.id),
+            onToggleFavorite = { viewModel.toggleFavorite(enterprise) }
         )
     }
 }

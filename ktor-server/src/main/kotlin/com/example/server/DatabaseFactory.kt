@@ -1,6 +1,7 @@
 package com.example.server
 
 import com.example.server.models.Enterprises
+import com.example.server.models.Favorites
 import com.example.server.models.Users
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.transaction
@@ -31,7 +32,7 @@ object DatabaseFactory {
         }
 
         transaction {
-            SchemaUtils.create(Users, Enterprises)
+            SchemaUtils.create(Users, Enterprises, Favorites)
             seedIfEmpty()
         }
     }

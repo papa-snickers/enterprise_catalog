@@ -12,6 +12,14 @@ object Users : Table("users") {
     override val primaryKey = PrimaryKey(id)
 }
 
+object Favorites : Table("favorites") {
+    val id = varchar("id", 36)
+    val userId = varchar("user_id", 36).references(Users.id)
+    val enterpriseId = varchar("enterprise_id", 36).references(Enterprises.id)
+    override val primaryKey = PrimaryKey(id)
+    init { uniqueIndex(userId, enterpriseId) }
+}
+
 object Enterprises : Table("enterprises") {
     val id = varchar("id", 36)
     val name = varchar("name", 255)
